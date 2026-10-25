@@ -72,14 +72,13 @@ button{background:none;border:0;padding:0;cursor:pointer}
 /* iOS-PWA: beim Start ist der feste Viewport kurz ohne unteren Safe-Area-Bereich → Ebenen bewusst überstehen lassen */
 .ambient,.grain{top:calc(-1 * env(safe-area-inset-top) - 60px);bottom:calc(-1 * env(safe-area-inset-bottom) - 120px);left:0;right:0}
 .ambient{position:fixed;z-index:0;pointer-events:none;overflow:hidden}
-.ambient i{position:absolute;border-radius:50%;filter:blur(70px);opacity:var(--blob-op);will-change:transform}
-.ambient i:nth-child(1){width:70vmax;height:70vmax;left:-25vmax;top:-30vmax;background:radial-gradient(circle,var(--blob-a),transparent 65%);animation:drift1 26s ease-in-out infinite alternate}
-.ambient i:nth-child(2){width:60vmax;height:60vmax;right:-25vmax;top:10vh;background:radial-gradient(circle,var(--blob-b),transparent 65%);animation:drift2 32s ease-in-out infinite alternate}
-.ambient i:nth-child(3){width:55vmax;height:55vmax;left:-10vmax;bottom:-30vmax;background:radial-gradient(circle,var(--blob-c),transparent 65%);animation:drift3 38s ease-in-out infinite alternate;opacity:calc(var(--blob-op)*.7)}
-@keyframes drift1{to{transform:translate(12vw,8vh) scale(1.1)}}
-@keyframes drift2{to{transform:translate(-14vw,14vh) scale(.92)}}
-@keyframes drift3{to{transform:translate(18vw,-10vh) scale(1.08)}}
-.grain{position:fixed;z-index:0;pointer-events:none;opacity:.05;mix-blend-mode:overlay;
+/* Statisch & ohne filter:blur – bewegter Hintergrund zwingt alle Glas-Karten, jeden Frame neu zu blurren */
+.ambient{transform:translateZ(0)}
+.ambient i{position:absolute;border-radius:50%;opacity:var(--blob-op)}
+.ambient i:nth-child(1){width:80vmax;height:80vmax;left:-30vmax;top:-35vmax;background:radial-gradient(circle,var(--blob-a),transparent 68%)}
+.ambient i:nth-child(2){width:70vmax;height:70vmax;right:-30vmax;top:8vh;background:radial-gradient(circle,var(--blob-b),transparent 68%)}
+.ambient i:nth-child(3){width:65vmax;height:65vmax;left:-15vmax;bottom:-35vmax;background:radial-gradient(circle,var(--blob-c),transparent 68%);opacity:calc(var(--blob-op)*.7)}
+.grain{position:fixed;z-index:0;pointer-events:none;opacity:.035;transform:translateZ(0);
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 
 /* ---------- Layout ---------- */
@@ -187,7 +186,7 @@ h2{margin:0;font-size:20px;font-weight:700;letter-spacing:-.02em}
 .chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 4px;margin:12px -16px 0;padding-left:16px;padding-right:16px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:none;padding:8px 14px;border-radius:999px;font-size:14px;font-weight:600;background:var(--glass);border:1px solid var(--stroke);
-  color:var(--text-2);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);transition:.2s;white-space:nowrap}
+  color:var(--text-2);transition:background .2s,color .2s;white-space:nowrap}
 .chip.on{background:var(--text);color:var(--bg);border-color:transparent}
 .toolbar{display:flex;justify-content:space-between;align-items:center;margin:16px 4px 10px;gap:10px}
 .sum-foot{display:flex;justify-content:space-between;padding:14px 18px;margin-top:12px;font-weight:600}
@@ -319,10 +318,9 @@ textarea::placeholder{color:var(--text-3)}
 .toast button{color:var(--accent);font-weight:700}
 
 /* ---------- Motion ---------- */
-.view>*{animation:rise .5s cubic-bezier(.2,.8,.2,1) both}
-.view>*:nth-child(2){animation-delay:.04s}.view>*:nth-child(3){animation-delay:.08s}
-.view>*:nth-child(4){animation-delay:.12s}.view>*:nth-child(5){animation-delay:.16s}.view>*:nth-child(n+6){animation-delay:.2s}
-@keyframes rise{from{opacity:0;transform:translateY(14px)}}
+/* Nur transform auf einer Ebene animieren: opacity würde den Glas-Blur der Karten kurz abschalten */
+.view.enter{animation:rise .3s cubic-bezier(.2,.8,.2,1)}
+@keyframes rise{from{transform:translate3d(0,12px,0)}}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -744,7 +742,8 @@ const VIEWS = {home:viewHome, list:viewList, cal:viewCal, settings:viewSettings}
 function render(animate = true){
   const v = $('#view');
   v.innerHTML = VIEWS[ui.tab]();
-  if(!animate) v.querySelectorAll(':scope>*').forEach(el => el.style.animation = 'none');
+  v.classList.remove('enter');
+  if(animate){ void v.offsetWidth; v.classList.add('enter'); }
   $('#topbar').textContent = TITLES[ui.tab];
   document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === ui.tab));
   moveIndicator();
@@ -771,8 +770,8 @@ function countUp(){
 function go(tab){
   if(tab === ui.tab) { window.scrollTo({top:0, behavior:'smooth'}); return; }
   ui.tab = tab;
-  const swap = () => { render(); window.scrollTo(0,0); };
-  document.startViewTransition ? document.startViewTransition(swap) : swap();
+  window.scrollTo(0, 0);
+  render();
 }
 
 /* ================= Sheet (Hinzufügen / Bearbeiten) ================= */

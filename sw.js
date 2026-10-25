@@ -1,5 +1,5 @@
 // Offline-Cache: App läuft auch ohne Internet. Bei Änderungen VERSION erhöhen.
-const VERSION = 'abos-v2';
+const VERSION = 'abos-v3';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', e => {
